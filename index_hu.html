@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="all" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta http-equiv="content-language" content="en, hu" />
+    <meta name="author" content="http://mierdekel.hu, [Kecskeméti Lajos]" />   
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<title>MIE Magyarország lakosságszáma</title>
+	<link rel="stylesheet" href="leaflet.css" />
+	<link rel="shortcut icon" type="image/vnd.microsoft.icon" href="http://mierdekel.hu/favicon.ico">
+	<link rel="icon" href="http://mierdekel.hu/favicon.ico">
+
+	<style>
+		#map {
+			width: 800px;
+			height: 500px;
+		}
+
+		.info {
+			padding: 6px 8px;
+			font: 14px/16px Arial, Helvetica, sans-serif;
+			background: white;
+			background: rgba(255,255,255,0.8);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+		}
+		.info h4 {
+			margin: 0 0 5px;
+			color: #777;
+		}
+
+		.legend {
+			text-align: left;
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+			opacity: 0.7;
+		}
+	</style>
+</head>
+<body>
+	<div id="map"></div>
+
+	<script src="leaflet.js"></script>
+
+	<script type="text/javascript" src="hu_megye.js"></script>
+	<script type="text/javascript">
+
+		var map = L.map('map').setView([47.2, 19.2], 7);
+
+var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+osmAttrib = 'Térkép © <a href="http://www.openstreetmap.org/">OSM</a>, PRG © <a href="http://mierdkel.hu/">MIE</a>',
+osm = new L.TileLayer(osmUrl, {maxZoom: 18, attribution: osmAttrib});
+map.setView(new L.LatLng(47.2, 19.2), 7).addLayer(osm);
+var popup = new L.Popup();
+   
+/*
+		L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			attribution: 'Térkép &copy; '+
+			    '<a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'examples.map-20v6611k'
+		}).addTo(map);
+		/* */
+//  https://a.tiles.mapbox.com/v3/examples.map-20v6611k/4/3/6.png  //kl
+
+		// control that shows state info on hover
+		var info = L.control();
+
+		info.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'info');
+			this.update();
+			return this._div;
+		};
+
+		info.update = function (props) {
+			this._div.innerHTML = '<h4>Magyarorság</h4>' +  (props ?
+				'<b>' + props.name + '</b><br />Lakosság: ' + props.nepesseg2011 + 
+				'<br />Régio: '+ props.regio +
+				'<br />Autos bün.: '+ props.autosbundb +
+				'<br />Egyén bün.: '+ props.egyebbundb +
+				'<br />Lakás bet.: '+ props.lakasbetoresdb +
+				'<br />Személy bün.: '+ props.szemelyellendb +
+				'<br />Össz. bün.: '+ props.bunozesdb 
+				: 'Megye fölé álljon');
+		};
+
+		info.addTo(map);
+
+
+		// get color depending on population density value
+		function getColor(d) {
+			return d > 1300000 ? '#603046' :
+			       d > 700000 ? '#800026' :
+			       d > 600000 ? '#BD0026' :
+			       d > 500000 ? '#E31A1C' :
+			       d > 400000 ? '#FC4E2A' :
+			       d > 300000 ? '#FD8D3C' :
+			       d > 200000 ? '#FEB24C' :
+			       d > 100000 ? '#FED976' :
+			                    '#FFEDA0';
+		}
+
+		function style(feature) {
+			return {
+				weight: 2,
+				opacity: 1,
+				color: 'white',
+				dashArray: '3',
+				fillOpacity: 0.7,
+				fillColor: getColor(feature.properties.nepesseg2011)
+			};
+		}
+
+		function highlightFeature(e) {
+			var layer = e.target;
+
+			layer.setStyle({
+				weight: 5,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 0.7
+			});
+
+			if (!L.Browser.ie && !L.Browser.opera) {
+				layer.bringToFront();
+			}
+
+			info.update(layer.feature.properties);
+		}
+
+		var geojson;
+
+		function resetHighlight(e) {
+			geojson.resetStyle(e.target);
+			info.update();
+		}
+
+		function zoomToFeature(e) {
+			map.fitBounds(e.target.getBounds());
+		}
+
+		function onEachFeature(feature, layer) {
+			layer.on({
+				mouseover: highlightFeature,
+				mouseout: resetHighlight,
+				click: zoomToFeature
+			});
+		}
+
+		geojson = L.geoJson(statesData, {
+			style: style,
+			onEachFeature: onEachFeature
+		}).addTo(map);
+
+		map.attributionControl.addAttribution('Népesség &copy; <a href="http://www.ksh.hu/">KSH</a>');
+
+
+		var legend = L.control({position: 'bottomright'});
+
+		legend.onAdd = function (map) {
+
+			var div = L.DomUtil.create('div', 'info legend'),
+			
+
+				grades = [0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 1300000],
+				labels = [],
+				from, to;
+
+			for (var i = 0; i < grades.length; i++) {
+				from = grades[i];
+				to = grades[i + 1];
+
+				labels.push(
+					'<i style="background:' + getColor(from + 1) + '"></i> ' +
+					from + (to ? '&ndash;' + to : '+'));
+			}
+
+			div.innerHTML = labels.join('<br>');
+			return div;
+		};
+
+		legend.addTo(map);
+
+	</script>
+</body>
+</html>

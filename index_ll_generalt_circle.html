@@ -1,0 +1,172 @@
+<html>    
+  <head> 
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />	
+  
+<!--  
+<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/ui-darkness/jquery-ui.css" type="text/css" media="all" />
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+
+http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js
+http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" 
+  type="text/css" media="all" />
+	
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js">
+</script>
+-->
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" 
+  type="text/css" media="all" />
+	
+<script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js">
+</script>
+
+    <style>
+/*  */
+body {
+    padding: 0;
+    margin: 0;
+}
+html, body {
+    height: 100%;
+}
+#map {
+    height: 100%;
+    height: 95%;
+}
+    </style>
+    
+
+	
+  </head>    
+  <body>
+  <div id="map_cont">
+     <div id="map"></div>
+  </div>
+<tt>
+<a href="#" onclick="filter(0,100);">0-100</a>
+<a href="#" onclick="filter(101,200);">101-200</a>
+<b> Render time: </b><b id="out"></b> ms
+<a href="#" onclick="filter2(0,100);">v2 0-100</a>
+<a href="#" onclick="filter2(101,200);">v2 101-200</a>
+	
+	
+	    <script type="text/javascript">  
+
+	
+var CM_ATTR = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+    '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+    'Imagery © <a href="http://cloudmade.com">CloudMade</a>';
+// var CM_URL = 'http://{s}.tile.cloudmade.com/d4fc77ea4a63471cab2423e66626cbb6/{styleId}/256/{z}/{x}/{y}.png';
+
+var CM_URL = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+var marker_layer = 0;
+var src_data = 0;
+var map = L.map('map').setView([0, 0], 4);
+
+L.tileLayer(CM_URL, {
+    attribution: CM_ATTR,
+    styleId: 997
+}).addTo(map);
+
+function make_data() {
+
+    src_data = {
+        type: "FeatureCollection",
+        features: []
+    };
+
+    for(var i=0;i<1000;++i) {
+        var g = { 
+            "type": "Point",
+            "coordinates": [ Math.random() * 360 - 180, Math.random() * 120 -60 ]
+        };
+
+        var p = {
+            "id" : i,
+            "city": "city name",
+            "popup": "popup_text_" + i,
+            "hits": parseInt( Math.random() * 200 )
+        };
+
+        src_data.features.push({
+            "geometry" : g,
+            "type": "Feature",
+            "properties": p
+        });
+    }
+}
+var markers = new Array();
+
+make_data();
+filter(0,200);
+filter2(100,200);
+
+function filter2(n1, n2) {
+    var start = new Date().getTime();
+    
+    if (map.hasLayer(marker_layer)) {
+        map.removeLayer(marker_layer);
+    }
+
+    marker_layer = new L.featureGroup();
+    for (var i = 0; i < src_data.features.length; i++) {
+        var feature = src_data.features[i];
+        if (feature.properties.hits >= n1 && feature.properties.hits <= n2) {
+          console.log("adding i="+i);
+          marker_layer.addLayer(markers[i]);
+        }
+    }
+    marker_layer.addTo(map);
+    
+    var elapsed = new Date().getTime() - start;
+    document.getElementById('out').innerHTML = elapsed;
+}
+
+function filter(n1, n2) {
+
+    var start = new Date().getTime();
+    
+    if (map.hasLayer(marker_layer)) {
+        map.removeLayer(marker_layer);
+    }
+
+    marker_layer = L.geoJson([src_data], {
+        style: function (feature) {
+            return feature.properties && feature.properties.style;
+        },
+        onEachFeature: function(feature, layer) {
+          if (feature.properties && feature.properties.popup) {
+                layer.bindPopup(feature.properties.popup);
+            }
+        },
+        filter: function(feature, layer) {
+            //console.log(feature);
+            return feature.properties.hits >= n1 && 
+                        feature.properties.hits <= n2;
+        },
+        pointToLayer: function (feature, latlng) {
+            var i = feature.properties.id;
+             markers[i] = L.circleMarker(latlng, {
+                radius: 24,
+                fillColor: "#996699",
+                color: "#000",
+                weight: 1,
+                opacity: 0.5,
+                fillOpacity: 0.8
+            });
+            return markers[i];
+        }
+    });
+    marker_layer.addTo(map);
+    
+    var elapsed = new Date().getTime() - start;
+    document.getElementById('out').innerHTML = elapsed;
+}
+    </script>      
+
+  </body>
+</html>
